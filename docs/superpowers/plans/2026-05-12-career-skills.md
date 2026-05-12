@@ -486,7 +486,7 @@ Check for `<hub>/.imported-resume.<ext>`.
 
 Render a sample PDF + DOCX to a temp scratch dir:
 - Populate the template by reading selected highlights from BACKGROUND.md (Personal, top 1–2 roles, top 3 skills, top 2 projects, education, top certs).
-- Render: `pandoc <scratch>/resume.md -o <scratch>/resume.pdf --css <hub>/template/style.css` and `pandoc <scratch>/resume.md -o <scratch>/resume.docx --reference-doc <hub>/template/reference.docx`.
+- Render: `pandoc <scratch>/resume.md -o <scratch>/resume.pdf --pdf-engine=<detected-pdf-engine> --css <hub>/template/style.css` and `pandoc <scratch>/resume.md -o <scratch>/resume.docx --reference-doc <hub>/template/reference.docx`.
 
 Show the user paths to the sample PDF and DOCX. Ask them to open and view before proceeding.
 
@@ -852,7 +852,7 @@ Write the approved files:
 
 Render via Pandoc:
 ```bash
-pandoc ./<slug>/resume.md -o ./<slug>/resume.pdf --css <hub>/template/style.css
+pandoc ./<slug>/resume.md -o ./<slug>/resume.pdf --pdf-engine=<detected-pdf-engine> --css <hub>/template/style.css
 pandoc ./<slug>/resume.md -o ./<slug>/resume.docx --reference-doc <hub>/template/reference.docx
 ```
 

@@ -16,6 +16,8 @@ Critique the user's resume format, iterate with the user, and lock in a reusable
 
 ## Procedure
 
+Read `~/.claude/career/config.yml` to determine `<hub>` for all subsequent steps.
+
 ### 1. Detect existing template
 
 Check for `<hub>/template/`.
@@ -45,7 +47,7 @@ Record the chosen length — it gets stored in `template-notes.md` at step 8.
 ### 4. Establish the structural starting point
 
 Check for `<hub>/.imported-resume.<ext>`.
-- **Exists:** read it (PDF/MD/TXT directly; DOCX via `pandoc <file> -t markdown`). Extract section order and naming as the starting structural template.
+- **Exists:** read it (PDF/MD/TXT directly; DOCX via `pandoc <file> -t markdown`). Extract section order and naming as the starting structural template. Write the extracted structure to `<hub>/template/resume.template.md` as the starting draft.
 - **Missing:** copy `default-resume.template.md` (bundled in this skill folder) to `<hub>/template/resume.template.md`.
 
 ### 5. Establish the visual starting point
@@ -58,7 +60,11 @@ Check for `<hub>/.imported-resume.<ext>`.
 
 Render a sample PDF + DOCX to a temp scratch dir:
 - Populate the template by reading selected highlights from BACKGROUND.md (Personal, top 1–2 roles, top 3 skills, top 2 projects, education, top certs).
-- Render: `pandoc <scratch>/resume.md -o <scratch>/resume.pdf --css <hub>/template/style.css` and `pandoc <scratch>/resume.md -o <scratch>/resume.docx --reference-doc <hub>/template/reference.docx`.
+- Render:
+  - `pandoc <scratch>/resume.md -o <scratch>/resume.pdf --pdf-engine=<detected-pdf-engine> --css <hub>/template/style.css`
+  - `pandoc <scratch>/resume.md -o <scratch>/resume.docx --reference-doc <hub>/template/reference.docx`
+
+  `<detected-pdf-engine>` is the engine identified in Preconditions (one of `wkhtmltopdf`, `weasyprint`, `pdflatex`). The `--css` flag is honored only for HTML-based engines (`wkhtmltopdf`, `weasyprint`); pdflatex users will see unstyled output unless they also customize a LaTeX template (out of scope).
 
 Show the user paths to the sample PDF and DOCX. Ask them to open and view before proceeding.
 
@@ -86,7 +92,7 @@ Identify 5–10 prioritized issues with concrete suggested fixes.
 Present **one issue at a time**:
 > "Issue 1 of N: <description>. Suggested fix: <fix>. Apply, skip, or modify?"
 
-After each accepted change, re-render the sample PDF + DOCX so the user can see the effect concretely.
+After each accepted change, re-render the sample PDF + DOCX so the user can see the effect concretely (use the same two Pandoc commands from Step 5: `pandoc <scratch>/resume.md -o <scratch>/resume.pdf --pdf-engine=<detected-pdf-engine> --css <hub>/template/style.css` and `pandoc <scratch>/resume.md -o <scratch>/resume.docx --reference-doc <hub>/template/reference.docx`).
 
 If the user proposes a change that hurts ATS safety (two-column layout, graphics in header, etc.), warn them once and require explicit confirmation before applying.
 
