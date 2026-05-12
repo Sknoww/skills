@@ -1,0 +1,20 @@
+# Local scratch
+scratch/
+*.local.md
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Editor
+.vscode/
+.idea/
+
+# Test artifacts
+test-output/
