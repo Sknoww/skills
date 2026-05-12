@@ -25,7 +25,7 @@ If `~/.claude/career/config.yml` is missing:
   created: <YYYY-MM-DD>
   ```
 
-Read the config to determine `<hub>` for the rest of the run.
+In all cases, read `~/.claude/career/config.yml` to determine `<hub>` for the rest of the run.
 
 ### 2. Detect existing BACKGROUND.md
 
@@ -33,7 +33,7 @@ Check for `<hub>/BACKGROUND.md`.
 
 - **Present:** Ask: "Full re-interview, or update specific sections?"
   - On **full re-interview**: back up the existing file as `<hub>/BACKGROUND.<YYYYMMDD-HHMMSS>.md.bak`, then proceed to step 3.
-  - On **section update**: read the existing file silently, then jump to step 4 — interview only the sections the user names. Rewrite those sections in place; preserve the others.
+  - On **section update**: Ask: "Which sections would you like to update? (e.g., Experience, Story bank)" Then read the existing file silently, and jump to step 4 — interview only the sections the user names. Rewrite those sections in place; preserve the others.
 - **Missing:** proceed to step 3.
 
 ### 3. Optional resume ingestion
@@ -44,7 +44,7 @@ If a path is provided:
 - Stash a copy at `<hub>/.imported-resume.<ext>` (overwriting any prior import). This is read by `refine-template` later.
 - Read the file:
   - PDF / MD / TXT — read directly via the Read tool.
-  - DOCX — convert to markdown via `pandoc input.docx -t markdown`; if pandoc is unavailable, fall back to `unzip -p input.docx word/document.xml` and parse plaintext from the XML.
+  - DOCX — convert to markdown via `pandoc <path> -t markdown`; if pandoc is unavailable, fall back to `unzip -p <path> word/document.xml` and parse plaintext from the XML.
 - Extract what can be inferred for each schema section.
 - Present a summary per section, one section at a time: "Here's what I pulled for Experience — accurate? Anything to correct?". User confirms or corrects before moving on.
 - These extracted values seed the interview. Skip questions whose answers were extracted and confirmed; spend questions digging deeper (metrics, why-you-left, story-grade detail).
