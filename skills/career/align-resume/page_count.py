@@ -14,7 +14,7 @@ from pathlib import Path
 
 def page_count(path: Path) -> int:
     from pypdf import PdfReader
-    return len(PdfReader(str(path)).pages)
+    return len(PdfReader(path).pages)
 
 
 def main(argv: list[str]) -> int:
@@ -27,7 +27,12 @@ def main(argv: list[str]) -> int:
         return 1
     try:
         print(page_count(path))
+    except OSError as exc:
+        print(f"error: {argv[0]}: {exc}", file=sys.stderr)
+        return 1
     except Exception as exc:
+        # pypdf raises PdfReadError (a subclass of Exception) for malformed PDFs.
+        # Catch broadly here since we don't import pypdf at the top of the file.
         print(f"error: {argv[0]}: {exc}", file=sys.stderr)
         return 1
     return 0

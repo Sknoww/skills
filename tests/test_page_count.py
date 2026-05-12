@@ -42,11 +42,11 @@ def test_three_page_pdf(tmp_path):
 
 def test_missing_file_errors(tmp_path):
     out, err, code = run_script([str(tmp_path / "nope.pdf")])
-    assert code != 0
+    assert code == 1
     assert "nope.pdf" in (out + err)
 
 
 def test_no_args_prints_usage():
     out, err, code = run_script([])
-    assert code != 0
+    assert code == 2
     assert "usage" in (out + err).lower()
