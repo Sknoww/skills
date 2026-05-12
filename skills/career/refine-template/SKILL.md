@@ -59,7 +59,7 @@ Check for `<hub>/.imported-resume.<ext>`.
   ```
 
 Render a sample PDF + DOCX to a temp scratch dir:
-- Populate the template by reading selected highlights from BACKGROUND.md (Personal, top 1–2 roles, top 3 skills, top 2 projects, education, top certs).
+- Populate the template by reading selected highlights from BACKGROUND.md (Personal, top 1–2 roles, top 3 skills, top 2 projects, education, top certs). **Substitute every `{{...}}` placeholder with the corresponding value from BACKGROUND.md.** Remove any `<!-- Repeat per ... -->` HTML comments before rendering — repeat the surrounding block once per source entry (e.g., one `### <Company> — <Title>` block per role from BACKGROUND.md Experience).
 - Render:
   - `pandoc <scratch>/resume.md -o <scratch>/resume.pdf --pdf-engine=<detected-pdf-engine> --css <hub>/template/style.css`
   - `pandoc <scratch>/resume.md -o <scratch>/resume.docx --reference-doc <hub>/template/reference.docx`

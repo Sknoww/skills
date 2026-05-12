@@ -40,7 +40,7 @@ Default slug: `<company-slug>-<role-slug>` (lowercase, hyphenated). Confirm with
 Check whether `./<slug>/` already exists.
 - **Exists:** Ask: "Revise existing, or start fresh?".
   - On **start fresh**, move it to `./<slug>.<YYYYMMDD-HHMMSS>.bak/` and re-create.
-  - On **revise**: re-use the existing `job-description.md` (skip Step 2's JD parsing). Load the existing `resume.md` as the prior selection — pass it through to Step 5 so the material selection prefers the prior choices unless JD context has shifted. In Step 7, show a per-section diff against the prior `resume.md` so the user sees what changed.
+  - On **revise**: re-use the existing `job-description.md` (skip Step 2's user-facing prompt and confirmation echo-back, but **re-parse the saved `job-description.md` silently** to get the JD metadata (company, role title, hard reqs, tech keywords, seniority signals) that Steps 4 and 5 depend on). Load the existing `resume.md` as the prior selection — pass it through to Step 5 so the material selection prefers the prior choices unless JD context has shifted. In Step 7, show a per-section diff against the prior `resume.md` so the user sees what changed.
 - **Missing:** create it.
 
 Save the JD (either as-read or converted to MD) as `./<slug>/job-description.md`.
@@ -70,6 +70,8 @@ For each section of the template, pick the most relevant material:
 - **Education / Certifications / Extras** — filter to relevant.
 
 Maintain a ranked-bullet list in memory: a list of (role, bullet-index, bullet-text, JD-relevance-score) tuples, ordered by score descending. Step 8's page-trimming reuses this list — removing bullets from the bottom (lowest score) first.
+
+When writing `resume.md`, substitute every `{{...}}` placeholder in `<hub>/template/resume.template.md` with the corresponding selected value. Remove any `<!-- Repeat per ... -->` HTML comments and replicate the surrounding block once per selected entry.
 
 ### 6. Light rewording
 
@@ -121,16 +123,18 @@ pandoc ./<slug>/resume.md -o ./<slug>/resume.docx --reference-doc <hub>/template
 
 **Page-target enforcement:**
 
+Read the target from `<hub>/template/template-notes.md` — it is one of the strings `one`, `two`, or `flexible`. Map: `one` → 1 page, `two` → 2 pages, `flexible` → no enforcement (skip the block below).
+
 If the target recorded in template-notes.md is "flexible", skip this entire enforcement block.
 
 1. Read target page count from `<hub>/template/template-notes.md`.
-2. Run `python ~/.claude/skills/align-resume/page_count.py ./<slug>/resume.pdf` to get the rendered page count. (`page_count.py` is bundled in the same folder as this SKILL.md; after the repo installer runs, the install location is `~/.claude/skills/align-resume/page_count.py`. If the skill is invoked from the source repo directly, substitute the source path.)
+2. Run `python ~/.claude/skills/align-resume/page_count.py ./<slug>/resume.pdf` to get the rendered page count. (`page_count.py` is bundled in the same folder as this SKILL.md; after the repo installer runs, the install location is `~/.claude/skills/align-resume/page_count.py`. If the skill is invoked from the source repo directly, substitute the source path.) If `page_count.py` exits non-zero, surface the error to the user, skip page-target enforcement for this render, and continue to Step 9. The PDF/DOCX still exist on disk; the user can verify length manually.
 3. If over target:
    - Trim the lowest-ranked bullet from the relevance ordering produced in step 5.
    - Re-render PDF + DOCX.
    - Re-count pages.
-   - Repeat up to 3 attempts. (Attempt 1 = first trim-and-rerender. The initial render before any trimming is not counted.)
-4. If still over after 3 attempts, tell the user: "Resume still <N> pages after 3 trims. Accept overflow or prune manually?". On accept, leave as-is. On prune, return to step 7 with current selection.
+   - Repeat up to 10 attempts. (Attempt 1 = first trim-and-rerender. The initial render before any trimming is not counted.)
+4. If still over after 10 attempts, tell the user: "Resume still <N> pages after 10 trims. Accept overflow or prune manually?". On accept, leave as-is. On prune, return to step 7 with current selection.
 
 Iterations happen silently; the user is only re-engaged on cap failure.
 
