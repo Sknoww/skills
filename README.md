@@ -59,6 +59,11 @@ Three-command happy path:
 ### Integrate
 - `publish-issues` — syncs local issues to GitHub via `gh`. Idempotent. Optional.
 
+### Career
+- `build-background` — interview-driven capture of career history, projects, skills, story-bank, and goals into `<career-hub>/BACKGROUND.md`. First run picks the career-hub location.
+- `refine-template` — critiques resume format against modern best practices + ATS, iterates with the user, locks in a reusable template (markdown skeleton + CSS + reference.docx) in the career hub.
+- `align-resume` — generates an ATS-aware tailored resume from a job description: selects and lightly rewords material from BACKGROUND.md, renders MD/PDF/DOCX into a per-job subfolder in CWD, enforces page-length target.
+
 ## Artifact layout in your project
 
 ```
@@ -77,6 +82,31 @@ docs/features/<feature-slug>/
 ```
 
 `docs/design-system.md` lives at the project root (one per project, not per feature).
+
+## Career artifact layout
+
+Career hub (single source of truth, location set by `build-background` on first run, recorded in `~/.claude/career/config.yml`):
+
+```
+<career-hub>/
+├── BACKGROUND.md
+└── template/
+    ├── resume.template.md
+    ├── style.css
+    ├── reference.docx
+    └── template-notes.md
+```
+
+Per-job folder (in the directory `align-resume` is invoked from):
+
+```
+<cwd>/<job-slug>/
+├── job-description.md
+├── resume.md
+├── resume.pdf
+├── resume.docx
+└── tailoring-notes.md
+```
 
 ## Philosophy
 
