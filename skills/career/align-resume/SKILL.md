@@ -38,7 +38,9 @@ Echo the parse back as one paragraph: "Parsed: `<company>` hiring for `<title>`.
 Default slug: `<company-slug>-<role-slug>` (lowercase, hyphenated). Confirm with user: "Folder name: `./<slug>/` — sound right?".
 
 Check whether `./<slug>/` already exists.
-- **Exists:** Ask: "Revise existing, or start fresh?". On **start fresh**, move it to `./<slug>.<YYYYMMDD-HHMMSS>.bak/`. On **revise**, load existing `resume.md` as the starting draft.
+- **Exists:** Ask: "Revise existing, or start fresh?".
+  - On **start fresh**, move it to `./<slug>.<YYYYMMDD-HHMMSS>.bak/` and re-create.
+  - On **revise**: re-use the existing `job-description.md` (skip Step 2's JD parsing). Load the existing `resume.md` as the prior selection — pass it through to Step 5 so the material selection prefers the prior choices unless JD context has shifted. In Step 7, show a per-section diff against the prior `resume.md` so the user sees what changed.
 - **Missing:** create it.
 
 Save the JD (either as-read or converted to MD) as `./<slug>/job-description.md`.
@@ -57,6 +59,8 @@ Surface each violation as a warning: "Heads up — `<violation>`. Continue?". Th
 
 ### 5. Material selection
 
+If running in revise mode (Step 3), start from the prior `resume.md`'s selections and only re-rank if the JD parse in Step 2 surfaces new requirements not addressed by the prior version.
+
 Read the full `<hub>/BACKGROUND.md` and `<hub>/template/resume.template.md` and `<hub>/template/template-notes.md`. Determine target page length from `template-notes.md`.
 
 For each section of the template, pick the most relevant material:
@@ -65,7 +69,7 @@ For each section of the template, pick the most relevant material:
 - **Skills** — reorder to surface JD keywords first. **Never add a skill that is not in BACKGROUND.md.**
 - **Education / Certifications / Extras** — filter to relevant.
 
-Track the relevance ranking — `align-resume` reuses it during page-trimming in step 8.
+Maintain a ranked-bullet list in memory: a list of (role, bullet-index, bullet-text, JD-relevance-score) tuples, ordered by score descending. Step 8's page-trimming reuses this list — removing bullets from the bottom (lowest score) first.
 
 ### 6. Light rewording
 
@@ -95,6 +99,8 @@ Gaps surfaced (JD requires, BACKGROUND.md does not list):
 
 Constraint warnings:
   - <warning if any>
+
+If revising, show a per-section diff against the prior resume.md (sections added/removed/reworded).
 ```
 
 Ask: "Accept, request specific changes, or ask for a different selection?". Iterate until the user approves.
@@ -114,13 +120,16 @@ pandoc ./<slug>/resume.md -o ./<slug>/resume.docx --reference-doc <hub>/template
 `<detected-pdf-engine>` is the engine identified in Preconditions (one of `wkhtmltopdf`, `weasyprint`, `pdflatex`). The `--css` flag is honored only for HTML-based engines (`wkhtmltopdf`, `weasyprint`); pdflatex users will see unstyled output unless they also customize a LaTeX template (out of scope).
 
 **Page-target enforcement:**
+
+If the target recorded in template-notes.md is "flexible", skip this entire enforcement block.
+
 1. Read target page count from `<hub>/template/template-notes.md`.
-2. Run `python <skill-folder>/page_count.py ./<slug>/resume.pdf` to get the rendered page count.
+2. Run `python ~/.claude/skills/align-resume/page_count.py ./<slug>/resume.pdf` to get the rendered page count. (`page_count.py` is bundled in the same folder as this SKILL.md; after the repo installer runs, the install location is `~/.claude/skills/align-resume/page_count.py`. If the skill is invoked from the source repo directly, substitute the source path.)
 3. If over target:
    - Trim the lowest-ranked bullet from the relevance ordering produced in step 5.
    - Re-render PDF + DOCX.
    - Re-count pages.
-   - Repeat up to 3 attempts.
+   - Repeat up to 3 attempts. (Attempt 1 = first trim-and-rerender. The initial render before any trimming is not counted.)
 4. If still over after 3 attempts, tell the user: "Resume still <N> pages after 3 trims. Accept overflow or prune manually?". On accept, leave as-is. On prune, return to step 7 with current selection.
 
 Iterations happen silently; the user is only re-engaged on cap failure.
@@ -162,4 +171,5 @@ Print:
 - Selection > rewriting; reword only for keyword alignment or tightness.
 - Hard requirements absent from BACKGROUND.md are surfaced, not papered over.
 - Target page length is enforced via `page_count.py` render-and-count, not heuristic.
+- If `template-notes.md` records "flexible" as the page target, skip page-count enforcement in Step 8.
 - If `<hub>/template/` is missing pieces, error early with a pointer to `refine-template`.
