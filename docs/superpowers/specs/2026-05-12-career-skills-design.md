@@ -312,7 +312,7 @@ Gaps the user wants to fill later are marked with `<!-- TODO: ... -->` markers a
 8. **Render + write.**
    - Write `resume.md` and `job-description.md` to `./<job-slug>/`.
    - Pandoc → `resume.pdf` and `resume.docx`.
-   - **Page-target enforcement:** if rendered PDF exceeds target page count, trim (lowest-priority bullets first) and re-render. Cap at 3 attempts; if still over, surface to user with options (accept overflow or prune manually).
+   - **Page-target enforcement:** if rendered PDF exceeds target page count, trim and re-render silently. "Lowest priority" is the lowest-ranked bullet/project from the relevance ordering produced in step 5 — trimming reverses that order. Cap at 3 attempts; if still over after 3, surface to the user with options (accept overflow or prune manually).
    - Write `tailoring-notes.md` — what was selected, what was reworded, what was missing.
 
 9. **Report.** Paths to all outputs. Any BACKGROUND.md TODOs the JD surfaced as worth filling in. Suggested next: review the PDF before submitting.
