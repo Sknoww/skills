@@ -15,7 +15,7 @@ None.
 
 ### 1. Identify the feature
 
-If invoked standalone, ask:
+If invoked standalone, the slug may be the first argument (e.g. `/probe-design dark-mode-toggle`); if not supplied, ask:
 > "What is the feature slug? (lowercase-hyphenated)"
 
 If invoked via `probe-feature`, the slug is passed in.
@@ -84,7 +84,9 @@ Write `docs/features/<slug>/probe-design.md` with this structure:
 ### 5. Report
 
 After writing, print:
-> "Wrote `docs/features/<slug>/probe-design.md`. Design system: `docs/design-system.md`. Next: `probe-product` / `probe-technical` (if not yet run), then `write-prd` + `write-design-brief`."
+> "Wrote `docs/features/<slug>/probe-design.md`. Design system: `docs/design-system.md`.
+>
+> Next — run any probe not yet done (`/probe-product <slug>`, `/probe-technical <slug>`); once all three probes exist, run `/write-prd <slug>`."
 
 ## Rules
 

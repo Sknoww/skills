@@ -6,11 +6,20 @@
 set -euo pipefail
 
 DRY_RUN=0
-FORCE=0
+# MODE is empty until the user/flags choose: overwrite | skip | archive | ""
+MODE=""
+set_mode() {
+    if [[ -n "$MODE" && "$MODE" != "$1" ]]; then
+        echo "conflicting collision flags: --$MODE and --$1" >&2; exit 2
+    fi
+    MODE="$1"
+}
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --dry-run) DRY_RUN=1 ;;
-        --force) FORCE=1 ;;
+        --force|--overwrite) set_mode overwrite ;;
+        --skip) set_mode skip ;;
+        --archive) set_mode archive ;;
         *) echo "unknown arg: $1" >&2; exit 2 ;;
     esac
     shift
@@ -25,6 +34,22 @@ ARCHIVE_ROOT="$DEST_ROOT/.archive"
 
 run() {
     if [[ $DRY_RUN -eq 1 ]]; then echo "[dry-run] $*"; else eval "$*"; fi
+}
+
+# Decide the collision mode the first time it is needed (interactive only).
+ASKED_GLOBAL=0
+ensure_mode() {
+    [[ -n "$MODE" ]] && return
+    [[ $ASKED_GLOBAL -eq 1 ]] && return
+    ASKED_GLOBAL=1
+    echo "Existing skills collide. Apply which action to ALL collisions?"
+    read -r -p "  (o)verwrite-all / (s)kip-all / (a)rchive-all / (d)ecide-each: " g
+    case "$g" in
+        o|O) MODE=overwrite ;;
+        s|S) MODE=skip ;;
+        a|A) MODE=archive ;;
+        *)   MODE="" ;;   # decide-each: fall through to per-skill prompt
+    esac
 }
 
 run "mkdir -p '$DEST_ROOT'"
@@ -46,7 +71,7 @@ for p in "${PROTOTYPES[@]}"; do
 done
 if [[ ${#EXISTING[@]} -gt 0 ]]; then
     echo "Found existing prototype skills: ${EXISTING[*]}"
-    if [[ $FORCE -eq 1 ]]; then ans=y; else read -r -p "Archive these before installing the new library? (y/N) " ans; fi
+    if [[ -n "$MODE" ]]; then ans=y; else read -r -p "Archive these before installing the new library? (y/N) " ans; fi
     if [[ "$ans" == "y" || "$ans" == "Y" ]]; then
         run "mkdir -p '$ARCHIVE_ROOT'"
         for p in "${EXISTING[@]}"; do
@@ -63,7 +88,11 @@ for leaf in "${LEAVES[@]}"; do
     dst="$DEST_ROOT/$name"
 
     if [[ -d "$dst" ]]; then
-        if [[ $FORCE -eq 1 ]]; then action=o; else
+        ensure_mode
+        if [[ "$MODE" == overwrite ]]; then action=o
+        elif [[ "$MODE" == skip ]]; then action=s
+        elif [[ "$MODE" == archive ]]; then action=a
+        else
             read -r -p "Skill '$name' already exists. (o)verwrite / (s)kip / (a)rchive-then-overwrite? " action
         fi
         case "$action" in

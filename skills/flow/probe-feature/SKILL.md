@@ -15,6 +15,8 @@ None. Working directory should be the user's project repo.
 
 ### 1. Get the feature identity
 
+The slug may be supplied as the first argument (e.g. `/probe-feature dark-mode-toggle`). If supplied, skip the slug question (still ask for the human-readable name if not derivable). Otherwise ask as below.
+
 Ask:
 > "Feature name? (Short human label, e.g. 'Dark mode toggle')"
 
@@ -76,7 +78,7 @@ In order:
 > - design-brief.md
 > - tech-spec.md (depth: <full | module-map-only>)
 >
-> Next: `slice-issues` to break this into vertical-slice issues."
+> Next — run: `/slice-issues <slug>`"
 
 ## Rules
 

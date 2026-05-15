@@ -16,7 +16,7 @@ All three must exist at `docs/features/<slug>/`:
 
 `docs/design-system.md` must exist.
 
-The bundled `ISSUE-TEMPLATE.md` and `estimate_tokens.py` must be in this skill's folder.
+The bundled `ISSUE-TEMPLATE.md`, `estimate_tokens.py`, and `status_update.py` must be in this skill's folder.
 
 If any are missing, abort with a pointer to the upstream skill.
 
@@ -82,9 +82,27 @@ Count issues with `Slice type: skeleton`. If they exceed 20% of total issues, ha
 
 Write each to `docs/features/<slug>/issues/NNN-<slug>.md`.
 
+### 8.5. Seed the progress tracker
+
+After all issue files are written, seed `STATUS.md`. After install the helper
+is a flat sibling at `~/.claude/skills/slice-issues/status_update.py`:
+
+```
+python ~/.claude/skills/slice-issues/status_update.py seed \
+  --feature-dir docs/features/<slug> \
+  --name "<feature name>" --slug <slug>
+```
+
+This writes `docs/features/<slug>/issues/STATUS.md` with every issue and all
+cells `—`. If the script isn't found at that path (non-standard install),
+note `STATUS.md: unseeded — helper not found` and continue; execute-issue
+will self-heal it on first run.
+
 ### 9. Report
 
-> "Wrote <N> issues to `docs/features/<slug>/issues/`. <count vertical / count skeleton>. Token budget summary: <min>k / <median>k / <max>k. Next: `sequence-issues` to build the dependency order."
+> "Wrote <N> issues to `docs/features/<slug>/issues/` and seeded `STATUS.md`. <count vertical / count skeleton>. Token budget summary: <min>k / <median>k / <max>k.
+>
+> Next — run: `/sequence-issues <slug>`"
 
 ## Rules
 

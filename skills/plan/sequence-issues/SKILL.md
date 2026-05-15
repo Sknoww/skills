@@ -18,7 +18,7 @@ If none exist, abort with:
 
 ### 1. Resolve slug + read all issues
 
-Read every `NNN-*.md` in `docs/features/<slug>/issues/`. Extract from each:
+The slug may be supplied as the first argument (e.g. `/sequence-issues payments-v2`). If absent, ask for it. Then read every `NNN-*.md` in `docs/features/<slug>/issues/`. Extract from each:
 - Issue number + title
 - Slice type
 - Modules touched (with internal/public surface annotation)
@@ -79,12 +79,27 @@ Re-run `sequence-issues` whenever issues are added, removed, or re-scoped.
 
 ### 6. Report
 
-> "Wrote `docs/features/<slug>/issues/SEQUENCE.md`. <N> layers, max parallelism <M>. Next: `execute-issue 001-...` to begin."
+> "Wrote `docs/features/<slug>/issues/SEQUENCE.md`. <N> layers, max parallelism <M>.
+>
+> Next — run: `<next-command>`"
+
+Compute `<next-command>` from STATUS.md + this sequence (the helper ships at
+`~/.claude/skills/slice-issues/status_update.py`):
+
+```
+python ~/.claude/skills/slice-issues/status_update.py next \
+  --feature-dir docs/features/<slug> --slug <slug> --stage execute
+```
+
+Print its stdout verbatim as `<next-command>` (e.g.
+`/execute-issue <slug>/001-<name>`). If STATUS.md is absent, fall back to
+`/execute-issue <slug>/<first issue in Layer 0>`.
 
 ## Rules
 
 - The graph is built from declared Read/Write files, not from inferred behavior. If an issue depends on another but doesn't read its outputs, the issue spec is wrong.
 - Skeleton issues are always upstream of the vertical slices they enable.
 - A re-sequence does NOT modify issue files; only SEQUENCE.md is rewritten.
+- `sequence-issues` READS `STATUS.md` only to compute the next command. It MUST NOT create or modify `STATUS.md` — that file is owned by slice-issues / execute-issue / verify-issue. A re-sequence still only rewrites `SEQUENCE.md`.
 
 (END sequence-issues)

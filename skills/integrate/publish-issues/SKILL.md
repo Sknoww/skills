@@ -19,7 +19,7 @@ If any check fails, abort with the specific message (e.g., "gh CLI not authentic
 
 ### 1. Resolve slug + verify gh
 
-Ask for slug if not provided. Run:
+The slug may be the first argument (e.g. `/publish-issues dark-mode-toggle`). Ask for it only if not provided. Run:
 ```
 gh auth status
 gh repo view --json nameWithOwner

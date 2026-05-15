@@ -116,7 +116,9 @@ If the user is revising an existing concept doc, preserve any Framings the user 
 Based on the Status the user chose, print one of:
 
 - **ready-to-probe:**
-  > "Wrote `docs/concepts/<slug>.md` (Status: ready-to-probe). Next: run `probe-feature` with slug `<slug>` — it will promote this concept into `docs/features/<slug>/concept.md` on entry."
+  > "Wrote `docs/concepts/<slug>.md` (Status: ready-to-probe).
+  >
+  > Next — run: `/probe-feature <slug>` (it promotes this concept into `docs/features/<slug>/concept.md` on entry)."
 - **shaping:**
   > "Wrote `docs/concepts/<slug>.md` (Status: shaping). Re-invoke `shape-feature` on this slug when you have more clarity, or move directly to `probe-feature` once you flip Status to `ready-to-probe`."
 - **shelved:**

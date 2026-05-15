@@ -20,10 +20,40 @@ If set, overwrites collisions without prompting.
 [CmdletBinding()]
 param(
     [switch]$DryRun,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$Overwrite,
+    [switch]$Skip,
+    [switch]$Archive
 )
 
+# Resolve a single collision mode from flags ("" = undecided / decide-each).
+$script:Mode = ''
+$flagModes = @()
+if ($Force -or $Overwrite) { $flagModes += 'overwrite' }
+if ($Skip)                 { $flagModes += 'skip' }
+if ($Archive)              { $flagModes += 'archive' }
+if ($flagModes.Count -gt 1) {
+    throw "Conflicting collision flags: $($flagModes -join ', '). Pick one."
+}
+if ($flagModes.Count -eq 1) { $script:Mode = $flagModes[0] }
+$script:AskedGlobal = $false
+
 $ErrorActionPreference = 'Stop'
+
+function Get-CollisionMode {
+    if ($script:Mode) { return $script:Mode }
+    if ($script:AskedGlobal) { return $script:Mode }
+    $script:AskedGlobal = $true
+    Write-Host "Existing skills collide. Apply which action to ALL collisions?"
+    $g = Read-Host "  (o)verwrite-all / (s)kip-all / (a)rchive-all / (d)ecide-each"
+    switch ($g) {
+        'o' { $script:Mode = 'overwrite' }
+        's' { $script:Mode = 'skip' }
+        'a' { $script:Mode = 'archive' }
+        default { $script:Mode = '' }
+    }
+    return $script:Mode
+}
 
 $repoRoot   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $skillsRoot = Join-Path $repoRoot 'skills'
@@ -54,10 +84,10 @@ $prototypes = @('probe', 'scope', 'grill-me')
 $existingPrototypes = $prototypes | Where-Object { Test-Path (Join-Path $destRoot $_) }
 if ($existingPrototypes.Count -gt 0) {
     Write-Host "Found existing prototype skills: $($existingPrototypes -join ', ')"
-    if (-not $Force) {
-        $answer = Read-Host "Archive these (move to .archive/) before installing the new library? (y/N)"
-    } else {
+    if ($script:Mode) {
         $answer = 'y'
+    } else {
+        $answer = Read-Host "Archive these (move to .archive/) before installing the new library? (y/N)"
     }
     if ($answer -eq 'y') {
         if (-not (Test-Path $archiveRoot)) {
@@ -84,18 +114,18 @@ foreach ($leaf in $leafSkills) {
     $dst = Join-Path $destRoot $name
 
     if (Test-Path $dst) {
-        if ($Force) {
-            $action = 'overwrite'
+        $mode = Get-CollisionMode
+        if ($mode -eq 'overwrite') {
+            $action = 'o'
+        } elseif ($mode -eq 'skip') {
+            $action = 's'
+        } elseif ($mode -eq 'archive') {
+            $action = 'a'
         } else {
             $action = Read-Host "Skill '$name' already exists. (o)verwrite / (s)kip / (a)rchive-then-overwrite?"
         }
         switch ($action) {
             'o' {
-                if ($DryRun) { Write-Host "[dry-run] would overwrite $dst" }
-                else { Remove-Item -Recurse -Force $dst; Copy-Item -Recurse $leaf.FullName $dst }
-                $overwritten++
-            }
-            'overwrite' {
                 if ($DryRun) { Write-Host "[dry-run] would overwrite $dst" }
                 else { Remove-Item -Recurse -Force $dst; Copy-Item -Recurse $leaf.FullName $dst }
                 $overwritten++

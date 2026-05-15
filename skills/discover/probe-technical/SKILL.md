@@ -15,7 +15,7 @@ None. Working directory should be the project repo.
 
 ### 1. Identify the feature
 
-If invoked standalone, ask for the slug. If invoked via `probe-feature`, the slug is passed in.
+If invoked standalone, the slug may be the first argument (e.g. `/probe-technical dark-mode-toggle`); if not supplied, ask for it. If invoked via `probe-feature`, the slug is passed in.
 
 ### 2. Skim the codebase silently
 
@@ -98,7 +98,9 @@ Example artifact structure (use a fenced code block in your SKILL.md):
 
 ### 6. Report
 
-> "Wrote `docs/features/<slug>/probe-technical.md`. Tech spec depth signal: <full | module-map-only>. Next: `write-prd` (after all three probes complete), then `write-tech-spec`."
+> "Wrote `docs/features/<slug>/probe-technical.md`. Tech spec depth signal: <full | module-map-only>.
+>
+> Next — run any probe not yet done (`/probe-product <slug>`, `/probe-design <slug>`); once all three probes exist, run `/write-prd <slug>`."
 
 ## Rules
 
