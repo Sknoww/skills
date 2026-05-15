@@ -193,8 +193,8 @@ def merge_states(existing: dict, findings: dict) -> dict:
             old_ev = prior.get("evidence", "")
             new_ev = finding.get("evidence", "")
             merged_item["evidence"] = (
-                f"[regressed] previously: {old_ev}; now: {new_ev}"
-                if old_ev else f"[regressed] {new_ev}"
+                f"⚠️ regressed — previously: {old_ev}; now: {new_ev}"
+                if old_ev else f"⚠️ regressed — {new_ev}"
             )
             merged_item["dev_notes"] = list(prior.get("dev_notes", []))
         else:
@@ -272,4 +272,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    # Ensure stdout is UTF-8 on Windows (default may be cp1252).
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     sys.exit(main())

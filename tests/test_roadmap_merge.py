@@ -9,7 +9,8 @@ SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "roadmap_merge.py"
 def run_script(args, stdin_text=None):
     result = subprocess.run(
         [sys.executable, str(SCRIPT), *args],
-        capture_output=True, text=True, input=stdin_text
+        capture_output=True, text=True, input=stdin_text,
+        encoding="utf-8"
     )
     return result.stdout, result.stderr, result.returncode
 
