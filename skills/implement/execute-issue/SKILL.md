@@ -21,7 +21,36 @@ If Execution log is already filled, ask:
 
 ### 1. Resolve target issue
 
-Argument: a path or NNN. Resolve to `docs/features/<slug>/issues/NNN-<slug>.md`. Read the full issue.
+Resolve the argument in this order:
+
+1. **Contains `/` or is an existing path** (e.g. `payments-v2/003-add-webhook`
+   or a full path) → use it directly.
+2. **Bare `NNN` or `NNN-name`** → glob `docs/features/*/issues/NNN-*.md`:
+   - **0 matches** → abort: "No issue `NNN` found under `docs/features/`."
+   - **exactly 1 match** → use it.
+   - **>1 matches → HARD STOP.** Do NOT guess. List every candidate as a
+     fully-qualified command and require the user to re-run disambiguated:
+     > "`NNN` is ambiguous across features. Re-run one of:
+     > - `/execute-issue <slugA>/<NNN-name>`
+     > - `/execute-issue <slugB>/<NNN-name>`"
+
+Once resolved, derive `<slug>` from the path (`docs/features/<slug>/...`),
+`<feature name>` from STATUS.md/probe-product if available, and read the full
+issue.
+
+### 1.5. Ensure STATUS.md exists (self-heal)
+
+If `docs/features/<slug>/issues/STATUS.md` does not exist (feature predates
+the tracker), regenerate it from existing issue logs:
+
+```
+python ~/.claude/skills/slice-issues/status_update.py regen \
+  --feature-dir docs/features/<slug> \
+  --name "<feature name>" --slug <slug>
+```
+
+If the helper is not found at that path, record
+`STATUS.md: unmanaged — helper not found` in the Execution log and continue.
 
 ### 2. Prompt for subagent type
 
@@ -81,9 +110,21 @@ Append to the issue's `## Execution log (filled by execute-issue)` section:
 - **Subagent type used:** <chosen>
 - **Date:** <YYYY-MM-DD>
 
+Then update the progress tracker (skip silently if the helper is not found):
+
+```
+python ~/.claude/skills/slice-issues/status_update.py mark-executed \
+  --feature-dir docs/features/<slug> --name "<feature name>" --slug <slug> \
+  --issue <NNN-name> --date <YYYY-MM-DD> --status <DONE|BLOCKED|NEEDS_USER>
+```
+
 ### 7. Report
 
-> "Issue <NNN> executed. Status: <DONE | BLOCKED | NEEDS_USER>. Token actual: <N> (estimated was <M>). Next: `verify-issue <NNN>`."
+> "Issue <NNN> executed. Status: <DONE | BLOCKED | NEEDS_USER>. Token actual: <N> (estimated was <M>).
+>
+> Next — run:
+> - DONE → `/verify-issue <slug>/<NNN-name>`
+> - BLOCKED / NEEDS_USER → fix the blocker, then re-run `/execute-issue <slug>/<NNN-name>`"
 
 ## Rules
 
