@@ -237,8 +237,82 @@ def cmd_merge(args: argparse.Namespace) -> int:
     return 0
 
 
+def render_item(item: dict) -> list[str]:
+    icon = ICON_BY_STATUS[item["status"]]
+    title = item["title"]
+    evidence = item.get("evidence") or ""
+    body = f"{title} — {evidence}" if evidence else title
+    line = (
+        f"- {icon} [{item['platform_tag']}] {body} "
+        f"<!-- id: {item['id']} -->"
+    )
+    lines = [line]
+    for note in item.get("dev_notes", []):
+        lines.append(f"  > _Dev note ({note['date']}): {note['text']}_")
+    return lines
+
+
+def render_state(state: dict, metadata: dict, template: str) -> str:
+    # Count statuses.
+    counts = {"done": 0, "partial": 0, "pending": 0, "blocked": 0, "recheck": 0}
+    for it in state["items"]:
+        counts[it["status"]] = counts.get(it["status"], 0) + 1
+
+    # Group items by section.
+    by_section = {n: [] for n in range(1, 11)}
+    for it in state["items"]:
+        by_section[it["section"]].append(it)
+
+    # Render each section block.
+    section_blocks = {}
+    for n in range(1, 11):
+        items = by_section[n]
+        if not items:
+            section_blocks[n] = "_(no items)_"
+        else:
+            block_lines = []
+            for it in items:
+                block_lines.extend(render_item(it))
+            section_blocks[n] = "\n".join(block_lines)
+
+    # History (append pending_history_line if present, but not into state).
+    history_lines = [f"- {h['date']} — {h['text']}" for h in state.get("history", [])]
+    pending = state.get("pending_history_line")
+    if pending:
+        history_lines.append(f"- {pending['date']} — {pending['text']}")
+    history_block = "\n".join(history_lines) if history_lines else "_(no history yet)_"
+
+    substitutions = {
+        "{{GENERATED_DATE}}": metadata["generated_date"],
+        "{{PLATFORMS}}": ", ".join(metadata["platforms"]),
+        "{{APP_NAME}}": metadata["app_name"],
+        "{{BUNDLE_ID}}": metadata["bundle_id"],
+        "{{FRAMEWORK}}": metadata["framework"],
+        "{{LAST_AUDIT_DATE}}": metadata["last_audit_date"],
+        "{{COUNT_DONE}}": str(counts["done"]),
+        "{{COUNT_IN_PROGRESS}}": str(counts["partial"]),
+        "{{COUNT_PENDING}}": str(counts["pending"]),
+        "{{COUNT_BLOCKED}}": str(counts["blocked"]),
+        "{{COUNT_RECHECK}}": str(counts["recheck"]),
+        "{{HISTORY_LOG}}": history_block,
+    }
+    for n in range(1, 11):
+        substitutions[f"{{{{ITEMS_SECTION_{n}}}}}"] = section_blocks[n]
+
+    output = template
+    for k, v in substitutions.items():
+        output = output.replace(k, v)
+    return output
+
+
 def cmd_render(args: argparse.Namespace) -> int:
-    raise NotImplementedError("render — see Task 8")
+    state = json.loads(args.state.read_text(encoding="utf-8"))
+    metadata = json.loads(args.metadata.read_text(encoding="utf-8"))
+    template_path = Path(metadata["template_path"])
+    template = template_path.read_text(encoding="utf-8")
+    output = render_state(state, metadata, template)
+    sys.stdout.write(output)
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:

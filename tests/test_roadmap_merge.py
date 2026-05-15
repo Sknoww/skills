@@ -330,3 +330,116 @@ def test_merge_records_pending_history_summary(tmp_path):
     assert "2026-05-21" in line["date"] or line["date"] == "2026-05-21"
     assert "done" in line["text"].lower()
     assert "pending" in line["text"].lower()
+
+
+SAMPLE_METADATA = {
+    "generated_date": "2026-05-14",
+    "platforms": ["Apple App Store", "Google Play"],
+    "app_name": "Acme Mobile",
+    "bundle_id": "com.acme.mobile",
+    "framework": "Expo SDK 52 / React Native 0.76 (managed)",
+    "last_audit_date": "2026-05-14",
+    "template_path": str(
+        Path(__file__).resolve().parent.parent
+        / "skills" / "release" / "chart-publishing-path" / "templates" / "roadmap.md"
+    ),
+}
+
+
+def test_render_empty_state_uses_template(tmp_path):
+    state = _empty_state()
+    out, _, code = run_script([
+        "render", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "m.json", SAMPLE_METADATA))])
+    assert code == 0
+    assert "# Publishing Roadmap" in out
+    assert "Acme Mobile" in out
+    assert "com.acme.mobile" in out
+    assert "2026-05-14" in out
+
+
+def test_render_item_format(tmp_path):
+    state = _empty_state()
+    state["items"].append({
+        "id": "apple.identity.bundle-id", "section": 2,
+        "title": "Bundle ID set", "platform_tag": "Apple",
+        "status": "done", "evidence": "com.acme.mobile in app.json",
+        "next_action": None, "dev_notes": [],
+    })
+    out, _, _ = run_script([
+        "render", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "m.json", SAMPLE_METADATA))])
+    assert "✅ [Apple] Bundle ID set" in out
+    assert "<!-- id: apple.identity.bundle-id -->" in out
+
+
+def test_render_items_grouped_by_section(tmp_path):
+    state = _empty_state()
+    state["items"].extend([
+        {"id": "a.s1", "section": 1, "title": "T1", "platform_tag": "Both",
+         "status": "done", "evidence": "", "next_action": None, "dev_notes": []},
+        {"id": "a.s3", "section": 3, "title": "T3", "platform_tag": "Both",
+         "status": "done", "evidence": "", "next_action": None, "dev_notes": []},
+    ])
+    out, _, _ = run_script([
+        "render", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "m.json", SAMPLE_METADATA))])
+    # Section 1 line appears before section 3 line.
+    assert out.index("## 1. ") < out.index("a.s1")
+    assert out.index("a.s1") < out.index("## 3. ")
+    assert out.index("## 3. ") < out.index("a.s3")
+
+
+def test_render_dev_notes_preserved(tmp_path):
+    state = _empty_state()
+    state["items"].append({
+        "id": "shared.x", "section": 1, "title": "T", "platform_tag": "Both",
+        "status": "pending", "evidence": "", "next_action": None,
+        "dev_notes": [{"date": "2026-05-10", "text": "waiting on accountant."}],
+    })
+    out, _, _ = run_script([
+        "render", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "m.json", SAMPLE_METADATA))])
+    assert "> _Dev note (2026-05-10): waiting on accountant._" in out
+
+
+def test_render_summary_counts(tmp_path):
+    state = _empty_state()
+    state["items"].extend([
+        {"id": "a.1", "section": 1, "title": "T", "platform_tag": "Both",
+         "status": "done", "evidence": "", "next_action": None, "dev_notes": []},
+        {"id": "a.2", "section": 1, "title": "T", "platform_tag": "Both",
+         "status": "done", "evidence": "", "next_action": None, "dev_notes": []},
+        {"id": "a.3", "section": 1, "title": "T", "platform_tag": "Both",
+         "status": "pending", "evidence": "", "next_action": None, "dev_notes": []},
+    ])
+    out, _, _ = run_script([
+        "render", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "m.json", SAMPLE_METADATA))])
+    assert "✅ Done: 2" in out
+    assert "⬜ Pending: 1" in out
+
+
+def test_render_history_appended(tmp_path):
+    state = _empty_state()
+    state["history"].append({"date": "2026-05-14",
+                             "text": "Initial scaffold (Expo 52, RN 0.76)."})
+    state["pending_history_line"] = {"date": "2026-05-21",
+                                     "text": "Re-run. 2 done, 1 pending."}
+    out, _, _ = run_script([
+        "render", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "m.json", SAMPLE_METADATA))])
+    assert "2026-05-14 — Initial scaffold" in out
+    assert "2026-05-21 — Re-run. 2 done, 1 pending." in out
+
+
+def test_render_section_empty_when_no_items(tmp_path):
+    state = _empty_state()
+    state["items"].append({
+        "id": "a.1", "section": 1, "title": "T", "platform_tag": "Both",
+        "status": "done", "evidence": "", "next_action": None, "dev_notes": []})
+    out, _, _ = run_script([
+        "render", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "m.json", SAMPLE_METADATA))])
+    # Section 2 heading still appears but has no items beneath it.
+    assert "## 2. App Identity & Versioning" in out
