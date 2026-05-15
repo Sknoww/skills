@@ -258,17 +258,19 @@ def test_bundled_copy_is_identical():
 
 def test_next_execute_all_done_points_to_first_unverified(tmp_path):
     feature, issues = _seed(tmp_path)
-    # All executed; 001 verified PASS, 002 NOT verified.
+    # All executed; LAST issue (002-beta) verified PASS, FIRST (001-alpha) NOT.
+    # This makes "first unverified" (001-alpha) differ from ordered[-1]
+    # (002-beta), so the old `ordered[-1]` bug would fail this assertion.
     for stem in ("001-alpha", "002-beta"):
         run(["mark-executed", "--feature-dir", str(feature), "--name", "Demo",
              "--slug", "demo", "--issue", stem, "--date", "2026-05-15"])
     run(["mark-verified", "--feature-dir", str(feature), "--name", "Demo",
-         "--slug", "demo", "--issue", "001-alpha", "--date", "2026-05-15",
+         "--slug", "demo", "--issue", "002-beta", "--date", "2026-05-15",
          "--verdict", "PASS"])
     out, err, code = run([
         "next", "--feature-dir", str(feature), "--slug", "demo",
         "--stage", "execute",
     ])
     assert code == 0, err
-    # Execute stage fully done -> point at first UNVERIFIED issue, not the last.
-    assert out.strip() == "/verify-issue demo/002-beta"
+    # Execute stage fully done -> first UNVERIFIED issue, not the last one.
+    assert out.strip() == "/verify-issue demo/001-alpha"
