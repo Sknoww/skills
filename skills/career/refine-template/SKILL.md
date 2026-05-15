@@ -58,11 +58,12 @@ Check for `<hub>/.imported-resume.<ext>`.
   pandoc --print-default-data-file reference.docx > <hub>/template/reference.docx
   ```
 
-Render a sample PDF + DOCX to a temp scratch dir:
-- Populate the template by reading selected highlights from BACKGROUND.md (Personal, top 1–2 roles, top 3 skills, top 2 projects, education, top certs). **Substitute every `{{...}}` placeholder with the corresponding value from BACKGROUND.md.** Remove any `<!-- Repeat per ... -->` HTML comments before rendering — repeat the surrounding block once per source entry (e.g., one `### <Company> — <Title>` block per role from BACKGROUND.md Experience).
+Render a sample PDF + DOCX to `./.scratch/` (a folder in the **current working directory** — the directory the user invoked Claude from, not the career hub and not the OS temp dir). Create `./.scratch/` if it does not exist. Never use `/tmp`, `$TMPDIR`, `%TEMP%`, or any path outside CWD for scratch output.
+
+- Populate the template by reading selected highlights from BACKGROUND.md (Personal, top 1–2 roles, top 3 skills, top 2 projects, education, top certs). **Substitute every `{{...}}` placeholder with the corresponding value from BACKGROUND.md.** Remove any `<!-- Repeat per ... -->` HTML comments before rendering — repeat the surrounding block once per source entry (e.g., one `### <Company> — <Title>` block per role from BACKGROUND.md Experience). Write the populated source to `./.scratch/resume.md`.
 - Render:
-  - `pandoc <scratch>/resume.md -o <scratch>/resume.pdf --pdf-engine=<detected-pdf-engine> --css <hub>/template/style.css`
-  - `pandoc <scratch>/resume.md -o <scratch>/resume.docx --reference-doc <hub>/template/reference.docx`
+  - `pandoc ./.scratch/resume.md -o ./.scratch/resume.pdf --pdf-engine=<detected-pdf-engine> --css <hub>/template/style.css`
+  - `pandoc ./.scratch/resume.md -o ./.scratch/resume.docx --reference-doc <hub>/template/reference.docx`
 
   `<detected-pdf-engine>` is the engine identified in Preconditions (one of `wkhtmltopdf`, `weasyprint`, `pdflatex`). The `--css` flag is honored only for HTML-based engines (`wkhtmltopdf`, `weasyprint`); pdflatex users will see unstyled output unless they also customize a LaTeX template (out of scope).
 
@@ -92,7 +93,7 @@ Identify 5–10 prioritized issues with concrete suggested fixes.
 Present **one issue at a time**:
 > "Issue 1 of N: <description>. Suggested fix: <fix>. Apply, skip, or modify?"
 
-After each accepted change, re-render the sample PDF + DOCX so the user can see the effect concretely (use the same two Pandoc commands from Step 5: `pandoc <scratch>/resume.md -o <scratch>/resume.pdf --pdf-engine=<detected-pdf-engine> --css <hub>/template/style.css` and `pandoc <scratch>/resume.md -o <scratch>/resume.docx --reference-doc <hub>/template/reference.docx`).
+After each accepted change, re-render the sample PDF + DOCX so the user can see the effect concretely (use the same two Pandoc commands from Step 5, writing into `./.scratch/` in CWD: `pandoc ./.scratch/resume.md -o ./.scratch/resume.pdf --pdf-engine=<detected-pdf-engine> --css <hub>/template/style.css` and `pandoc ./.scratch/resume.md -o ./.scratch/resume.docx --reference-doc <hub>/template/reference.docx`).
 
 If the user proposes a change that hurts ATS safety (two-column layout, graphics in header, etc.), warn them once and require explicit confirmation before applying.
 
@@ -138,3 +139,4 @@ Print a summary of decisions locked in, then:
 - Never override ATS-safety choices for visual flair without explicit user confirmation.
 - Industry inference is a soft default; the user can override at any point.
 - The target page length recorded here is a hard constraint for `align-resume`.
+- **Scratch output stays in CWD.** All transient sample renders (PDF/DOCX/MD generated during iteration) must be written to `./.scratch/` — a folder inside the user's current working directory (the directory Claude was launched from). Do **not** write to `/tmp`, `$TMPDIR`, `%TEMP%`, `tempfile.mkdtemp()`, or any other path outside CWD. The only files allowed outside CWD are the locked template files at `<hub>/template/` (per the design) and reads from `<hub>/BACKGROUND.md`.

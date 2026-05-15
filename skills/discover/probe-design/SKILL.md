@@ -22,6 +22,8 @@ If invoked via `probe-feature`, the slug is passed in.
 
 ### 2. Check for `docs/design-system.md`
 
+If `docs/features/<slug>/concept.md` exists, read it once for background only — design questions (tone, motion, density, a11y) don't map directly from concept content, so do not pre-fill answers from it.
+
 If `docs/design-system.md` does NOT exist:
 > "No `docs/design-system.md` found. I can scaffold one from a template — you fill in the actual tokens/values for this project. Scaffold now? (y/n)"
 

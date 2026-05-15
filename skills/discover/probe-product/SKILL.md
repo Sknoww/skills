@@ -32,6 +32,21 @@ Read these if they exist; do not ask permission, do not summarize back:
 
 Use what you find to skip questions whose answers are already documented.
 
+### 2.5. Concept doc handling
+
+If `docs/features/<slug>/concept.md` exists (i.e. this feature was promoted from a shaped Concept), read it and use it to draft starting answers — light, judgment-based mapping, never copy verbatim:
+
+- `Problem (rough)` → seed for the **Problem** answer.
+- `Beneficiary (rough)` → seed for the **Primary user** answer.
+- `Chosen framing` → orientation for **JTBD** and **In scope**.
+- `Explicit no-gos` → seed for the **Out of scope** answer.
+- `Open questions` from the concept → carry into this probe's **Open questions** unless they're now resolved.
+
+When you ask each interview question below, lead with the drafted starting answer (if any) and ask the user to confirm or correct it rather than asking cold. Example:
+> "From the concept, the primary user looks like <X>. Confirm or sharpen?"
+
+If no `concept.md` exists, proceed normally with the interview below.
+
 ### 3. Interview — ask one at a time
 
 Ask each question only if not already answered by existing context. Wait for the answer before moving on.

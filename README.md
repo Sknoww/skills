@@ -23,17 +23,23 @@ The installer copies each leaf skill folder into `~/.claude/skills/`. Re-running
 
 ## Quick start
 
-Three-command happy path:
+Happy path:
 
 ```
-> probe-feature           # interactive — produces docs/features/<slug>/ bundle
+> shape-feature           # optional — half-formed ideas only. Produces docs/concepts/<slug>.md
+> probe-feature           # interactive — produces docs/features/<slug>/ bundle (auto-promotes a ready-to-probe concept)
 > slice-issues            # produces issues/NNN-*.md and SEQUENCE.md
 > execute-issue 001-...   # loop per issue
 > verify-issue 001-...    # after each execute
 > publish-issues          # optional — syncs to GitHub
 ```
 
+Skip `shape-feature` if you already know what you're building.
+
 ## Skills
+
+### Shape (optional, pre-probe)
+- `shape-feature` — interview that turns a rough idea into a concept doc (`docs/concepts/<slug>.md`) with Framings, a Chosen framing, Appetite, and a Status gate (`shaping` / `ready-to-probe` / `shelved`). `probe-feature` auto-promotes any `ready-to-probe` concept into `docs/features/<slug>/concept.md`.
 
 ### Orchestrator
 - `probe-feature` — runs the discovery + synthesis phases end-to-end for a new feature.
@@ -67,7 +73,11 @@ Three-command happy path:
 ## Artifact layout in your project
 
 ```
+docs/concepts/
+└── <slug>.md                 # shaped concepts (shaping | ready-to-probe | shelved). Removed once promoted.
+
 docs/features/<feature-slug>/
+├── concept.md                # only present if this feature was promoted from a shaped concept
 ├── probe-product.md
 ├── probe-design.md
 ├── probe-technical.md
@@ -81,7 +91,7 @@ docs/features/<feature-slug>/
     └── NNN-qa-review.md
 ```
 
-`docs/design-system.md` lives at the project root (one per project, not per feature).
+Slugs are unique across both `docs/concepts/` and `docs/features/`. `docs/design-system.md` lives at the project root (one per project, not per feature).
 
 ## Career artifact layout
 

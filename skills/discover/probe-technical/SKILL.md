@@ -25,6 +25,17 @@ If invoked standalone, ask for the slug. If invoked via `probe-feature`, the slu
 
 Do not summarize back unless asked — this is internal context.
 
+### 2.5. Concept doc handling
+
+If `docs/features/<slug>/concept.md` exists (this feature was promoted from a shaped Concept), read it for orientation. Light, judgment-based use only — the concept doesn't have direct technical mappings:
+
+- `Chosen framing` → shapes which **Modules touched** are likely relevant, and bounds the **Constraints** discussion (a "lightweight" framing implies different constraints than an "ambitious" one).
+- `Appetite` → calibrates the **Tech spec depth signal** in step 8 (large appetite + new modules → full depth; small appetite + no module deltas → module-map-only).
+- `Explicit no-gos` → things you should NOT plan integrations or data deltas for.
+- `Open questions` from the concept → carry forward any with technical implications.
+
+Do not pre-fill technical answers from the concept — surface it as context only. If no `concept.md` exists, proceed normally.
+
 ### 3. Interview — ask one at a time
 
 1. **Modules touched (existing)** — "Which existing modules / packages / areas of the codebase will this feature touch?" Cross-reference with the skim. If the user names something that doesn't exist, surface it.
