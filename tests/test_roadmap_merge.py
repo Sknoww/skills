@@ -174,3 +174,158 @@ def test_parse_item_without_id_comment_ignored(tmp_path):
     assert code == 0
     state = json.loads(out)
     assert state["items"] == []
+
+
+def _write(tmp_path, name, obj):
+    p = tmp_path / name
+    p.write_text(json.dumps(obj))
+    return p
+
+
+def _empty_state():
+    return {
+        "header": {"platforms": [], "app_name": None, "bundle_id": None,
+                   "framework": None, "last_audit": None},
+        "items": [],
+        "history": [],
+    }
+
+
+def _finding(item_id, status="pending", section=1, title="Item",
+             platform_tag="Both", evidence="", next_action=None):
+    return {
+        "id": item_id, "section": section, "title": title,
+        "platform_tag": platform_tag, "status": status,
+        "evidence": evidence, "next_action": next_action,
+    }
+
+
+def test_merge_adds_new_item_to_empty_state(tmp_path):
+    state = _empty_state()
+    findings = {"audit_date": "2026-05-21", "platforms_audited": ["apple"],
+                "framework_detected": "expo-managed",
+                "items": [_finding("apple.identity.bundle-id", status="done",
+                                   section=2, title="Bundle ID set")]}
+    out, _, code = run_script([
+        "merge", str(_write(tmp_path, "state.json", state)),
+        str(_write(tmp_path, "f.json", findings))])
+    assert code == 0
+    merged = json.loads(out)
+    assert len(merged["items"]) == 1
+    assert merged["items"][0]["id"] == "apple.identity.bundle-id"
+    assert merged["items"][0]["status"] == "done"
+
+
+def test_merge_unchanged_status_preserves_item(tmp_path):
+    state = _empty_state()
+    state["items"].append({
+        "id": "shared.x", "section": 1, "title": "T", "platform_tag": "Both",
+        "status": "done", "evidence": "old", "next_action": None,
+        "dev_notes": [{"date": "2026-05-10", "text": "hi"}]})
+    findings = {"audit_date": "2026-05-21", "platforms_audited": ["apple"],
+                "framework_detected": "expo-managed",
+                "items": [_finding("shared.x", status="done",
+                                   evidence="still done")]}
+    out, _, _ = run_script([
+        "merge", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "f.json", findings))])
+    merged = json.loads(out)
+    by_id = {it["id"]: it for it in merged["items"]}
+    assert by_id["shared.x"]["status"] == "done"
+    assert by_id["shared.x"]["dev_notes"][0]["text"] == "hi"
+
+
+def test_merge_status_improved_preserves_dev_notes(tmp_path):
+    state = _empty_state()
+    state["items"].append({
+        "id": "shared.x", "section": 1, "title": "T", "platform_tag": "Both",
+        "status": "pending", "evidence": "", "next_action": None,
+        "dev_notes": [{"date": "2026-05-10", "text": "in flight"}]})
+    findings = {"audit_date": "2026-05-21", "platforms_audited": ["apple"],
+                "framework_detected": "expo-managed",
+                "items": [_finding("shared.x", status="done",
+                                   evidence="now done")]}
+    out, _, _ = run_script([
+        "merge", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "f.json", findings))])
+    merged = json.loads(out)
+    by_id = {it["id"]: it for it in merged["items"]}
+    assert by_id["shared.x"]["status"] == "done"
+    assert by_id["shared.x"]["evidence"] == "now done"
+    assert by_id["shared.x"]["dev_notes"][0]["text"] == "in flight"
+
+
+def test_merge_status_regression_marks_recheck(tmp_path):
+    state = _empty_state()
+    state["items"].append({
+        "id": "shared.x", "section": 1, "title": "T", "platform_tag": "Both",
+        "status": "done", "evidence": "was found", "next_action": None,
+        "dev_notes": []})
+    findings = {"audit_date": "2026-05-21", "platforms_audited": ["apple"],
+                "framework_detected": "expo-managed",
+                "items": [_finding("shared.x", status="pending",
+                                   evidence="no longer found")]}
+    out, _, _ = run_script([
+        "merge", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "f.json", findings))])
+    merged = json.loads(out)
+    by_id = {it["id"]: it for it in merged["items"]}
+    assert by_id["shared.x"]["status"] == "recheck"
+    assert "no longer found" in by_id["shared.x"]["evidence"]
+
+
+def test_merge_not_applicable_moves_to_history(tmp_path):
+    state = _empty_state()
+    state["items"].append({
+        "id": "apple.permissions.sign-in-with-apple", "section": 6, "title": "T",
+        "platform_tag": "Apple", "status": "pending", "evidence": "", "next_action": None,
+        "dev_notes": []})
+    findings = {"audit_date": "2026-05-21", "platforms_audited": ["apple"],
+                "framework_detected": "expo-managed",
+                "items": [_finding("apple.permissions.sign-in-with-apple",
+                                   status="not-applicable")]}
+    out, _, _ = run_script([
+        "merge", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "f.json", findings))])
+    merged = json.loads(out)
+    item_ids = [it["id"] for it in merged["items"]]
+    assert "apple.permissions.sign-in-with-apple" not in item_ids
+    history_text = " ".join(h["text"] for h in merged["history"])
+    assert "apple.permissions.sign-in-with-apple" in history_text
+    assert "no longer applicable" in history_text
+
+
+def test_merge_missing_from_audit_moves_to_history(tmp_path):
+    state = _empty_state()
+    state["items"].append({
+        "id": "old.item.removed", "section": 1, "title": "T", "platform_tag": "Both",
+        "status": "pending", "evidence": "", "next_action": None, "dev_notes": []})
+    findings = {"audit_date": "2026-05-21", "platforms_audited": ["apple"],
+                "framework_detected": "expo-managed", "items": []}
+    out, _, _ = run_script([
+        "merge", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "f.json", findings))])
+    merged = json.loads(out)
+    assert "old.item.removed" not in [it["id"] for it in merged["items"]]
+    history_text = " ".join(h["text"] for h in merged["history"])
+    assert "old.item.removed" in history_text
+    assert "removed from audit guide" in history_text
+
+
+def test_merge_records_pending_history_summary(tmp_path):
+    state = _empty_state()
+    findings = {"audit_date": "2026-05-21", "platforms_audited": ["apple"],
+                "framework_detected": "expo-managed",
+                "items": [
+                    _finding("a.x", status="done"),
+                    _finding("a.y", status="pending"),
+                ]}
+    out, _, _ = run_script([
+        "merge", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "f.json", findings))])
+    merged = json.loads(out)
+    assert "pending_history_line" in merged
+    line = merged["pending_history_line"]
+    assert "2026-05-21" in line["date"] or line["date"] == "2026-05-21"
+    assert "done" in line["text"].lower()
+    assert "pending" in line["text"].lower()

@@ -140,8 +140,101 @@ def cmd_parse(args: argparse.Namespace) -> int:
     return 0
 
 
+STATUS_RANK = {"pending": 0, "blocked": 1, "partial": 2, "done": 3,
+               "recheck": 0, "not-applicable": -1}
+
+
+def merge_states(existing: dict, findings: dict) -> dict:
+    merged = {
+        "header": dict(existing.get("header", {})),
+        "items": [],
+        "history": list(existing.get("history", [])),
+    }
+    audit_date = findings.get("audit_date", "")
+
+    existing_by_id = {it["id"]: it for it in existing.get("items", [])}
+    finding_by_id = {it["id"]: it for it in findings.get("items", [])}
+
+    counts = {"done": 0, "partial": 0, "pending": 0, "blocked": 0, "recheck": 0}
+
+    # Apply findings to existing items + add new ones.
+    for fid, finding in finding_by_id.items():
+        if finding["status"] == "not-applicable":
+            merged["history"].append({
+                "date": audit_date,
+                "text": f"`{fid}` no longer applicable on {audit_date}.",
+            })
+            continue
+
+        prior = existing_by_id.get(fid)
+        if prior is None:
+            new_item = {
+                "id": fid,
+                "section": finding["section"],
+                "title": finding["title"],
+                "platform_tag": finding["platform_tag"],
+                "status": finding["status"],
+                "evidence": finding.get("evidence", ""),
+                "next_action": finding.get("next_action"),
+                "dev_notes": [],
+            }
+            merged["items"].append(new_item)
+            counts[new_item["status"]] = counts.get(new_item["status"], 0) + 1
+            continue
+
+        # Existing item — apply status transition rules.
+        prior_rank = STATUS_RANK.get(prior["status"], 0)
+        new_rank = STATUS_RANK.get(finding["status"], 0)
+
+        if new_rank < prior_rank and prior["status"] != "recheck":
+            # Regression — mark recheck, keep dev notes, append audit evidence.
+            merged_item = dict(prior)
+            merged_item["status"] = "recheck"
+            old_ev = prior.get("evidence", "")
+            new_ev = finding.get("evidence", "")
+            merged_item["evidence"] = (
+                f"[regressed] previously: {old_ev}; now: {new_ev}"
+                if old_ev else f"[regressed] {new_ev}"
+            )
+            merged_item["dev_notes"] = list(prior.get("dev_notes", []))
+        else:
+            merged_item = dict(prior)
+            merged_item["status"] = finding["status"]
+            merged_item["evidence"] = finding.get("evidence", "")
+            merged_item["next_action"] = finding.get("next_action")
+            merged_item["dev_notes"] = list(prior.get("dev_notes", []))
+
+        merged["items"].append(merged_item)
+        counts[merged_item["status"]] = counts.get(merged_item["status"], 0) + 1
+
+    # Items in prior state but missing from new findings → history.
+    for eid, prior in existing_by_id.items():
+        if eid not in finding_by_id:
+            merged["history"].append({
+                "date": audit_date,
+                "text": f"`{eid}` removed from audit guide on {audit_date}.",
+            })
+
+    # Pending history line for the orchestrator / render step.
+    parts = [f"{counts[k]} {k}" for k in ("done", "partial", "pending",
+                                           "blocked", "recheck") if counts.get(k)]
+    prefix = "Re-run. " if existing_by_id else "Initial scaffold. "
+    if parts:
+        line_text = prefix + ", ".join(parts) + "."
+    else:
+        line_text = prefix + "(no items)."
+    merged["pending_history_line"] = {"date": audit_date, "text": line_text}
+
+    return merged
+
+
 def cmd_merge(args: argparse.Namespace) -> int:
-    raise NotImplementedError("merge — see Task 7")
+    existing = json.loads(args.existing_state.read_text(encoding="utf-8"))
+    findings = json.loads(args.findings.read_text(encoding="utf-8"))
+    result = merge_states(existing, findings)
+    json.dump(result, sys.stdout, ensure_ascii=False, indent=2)
+    sys.stdout.write("\n")
+    return 0
 
 
 def cmd_render(args: argparse.Namespace) -> int:
