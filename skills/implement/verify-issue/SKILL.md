@@ -143,6 +143,7 @@ python ~/.claude/skills/slice-issues/status_update.py next \
   when every issue is verified PASS).
 - On **FAIL / NEEDS_USER**: print `fix the issue, then re-run
   /verify-issue <slug>/<NNN-name>` instead of the helper output.
+- Note: the helper treats a recorded NEEDS_USER verdict as "done for this stage" and would advance past it; this explicit re-run instruction intentionally overrides that.
 
 ## Rules
 

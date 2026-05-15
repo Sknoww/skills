@@ -201,11 +201,13 @@ def cmd_next(args):
         if rows[stem][key] == DASH:
             print(f"/{skill} {args.slug}/{stem}")
             return 0
-    # all issues done in this stage; `ordered` is non-empty (stems checked above)
-    if args.stage == "verify":
-        print(f"/publish-issues {args.slug}")
-    else:
-        print(f"/verify-issue {args.slug}/{ordered[-1]}")
+    # all issues done in this stage. Hand off to the first unverified issue,
+    # else publish. (`ordered` is non-empty — stems checked above.)
+    for stem in ordered:
+        if rows[stem]["verified"] == DASH:
+            print(f"/verify-issue {args.slug}/{stem}")
+            return 0
+    print(f"/publish-issues {args.slug}")
     return 0
 
 

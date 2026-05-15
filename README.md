@@ -29,8 +29,8 @@ Happy path:
 > shape-feature           # optional — half-formed ideas only. Produces docs/concepts/<slug>.md
 > probe-feature           # interactive — produces docs/features/<slug>/ bundle (auto-promotes a ready-to-probe concept)
 > slice-issues            # produces issues/NNN-*.md and SEQUENCE.md
-> execute-issue <slug>/001-...   # loop per issue (slug-qualified — avoids cross-feature NNN collisions)
-> verify-issue  <slug>/001-...   # after each execute
+> execute-issue <slug>/<NNN-name>   # loop per issue (slug-qualified — avoids cross-feature NNN collisions)
+> verify-issue  <slug>/<NNN-name>   # after each execute
 > publish-issues          # optional — syncs to GitHub
 ```
 
