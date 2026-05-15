@@ -243,3 +243,14 @@ def test_regen_ignores_unfilled_codereview_placeholder(tmp_path):
     status = (issues / "STATUS.md").read_text(encoding="utf-8")
     # Placeholder "**Code review:** PASS | FAIL | NEEDS_USER" must NOT count as verified.
     assert "| 001-alpha | vertical | — | — |" in status
+
+
+def test_bundled_copy_is_identical():
+    canonical = (Path(__file__).resolve().parent.parent
+                 / "scripts" / "status_update.py")
+    bundled = (Path(__file__).resolve().parent.parent
+               / "skills" / "plan" / "slice-issues" / "status_update.py")
+    assert bundled.exists(), "bundled status_update.py missing"
+    assert bundled.read_bytes() == canonical.read_bytes(), (
+        "bundled copy drifted from scripts/status_update.py"
+    )
