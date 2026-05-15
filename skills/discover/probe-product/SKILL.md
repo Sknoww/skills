@@ -15,6 +15,8 @@ None — this is the entry point of the discover phase.
 
 ### 1. Identify the feature
 
+If a slug was passed as the first argument (e.g. by `probe-feature` or `/probe-product dark-mode-toggle`), use it and skip the slug question. Otherwise ask as below.
+
 Ask:
 > "What is the feature name? (Short slug, lowercase-hyphenated, e.g. `dark-mode-toggle`.)"
 
@@ -99,7 +101,11 @@ When <situation>, I want <motivation>, so I can <outcome>.
 ### 5. Report
 
 After writing, print:
-> "Wrote `docs/features/<slug>/probe-product.md`. Next: run `probe-design` or `probe-technical` (parallel) — both must be done before `write-prd`."
+> "Wrote `docs/features/<slug>/probe-product.md`.
+>
+> Next — run both (parallel; both required before write-prd):
+> - `/probe-design <slug>`
+> - `/probe-technical <slug>`"
 
 ## Rules
 

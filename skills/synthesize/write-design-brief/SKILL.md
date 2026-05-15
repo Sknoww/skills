@@ -19,13 +19,17 @@ If any are missing, abort with a pointer to the upstream skill.
 
 ## Procedure
 
-### 1. Read inputs
+### 1. Resolve slug
+
+The slug may be the first argument (e.g. `/write-design-brief dark-mode-toggle`). Ask for it only if not provided.
+
+### 2. Read inputs
 
 - `docs/features/<slug>/prd.md`
 - `docs/features/<slug>/probe-design.md`
 - `docs/design-system.md`
 
-### 2. Fill the brief
+### 3. Fill the brief
 
 Read the bundled `DESIGN-BRIEF-template.md`. Fill each section:
 - **Tone & references** ← probe-design Tone section
@@ -35,13 +39,15 @@ Read the bundled `DESIGN-BRIEF-template.md`. Fill each section:
 - **Microcopy direction** ← probe-design Microcopy voice
 - **Motion** ← probe-design Motion philosophy
 
-### 3. Write
+### 4. Write
 
 Write `docs/features/<slug>/design-brief.md`.
 
-### 4. Report
+### 5. Report
 
-> "Wrote `docs/features/<slug>/design-brief.md`. Next: `write-tech-spec`, then `slice-issues`."
+> "Wrote `docs/features/<slug>/design-brief.md`.
+>
+> Next — run: `/write-tech-spec <slug>`"
 
 ## Rules
 

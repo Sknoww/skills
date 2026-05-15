@@ -21,7 +21,7 @@ If any are missing, abort with:
 
 ### 1. Resolve slug
 
-Ask for slug if not provided. Confirm all three probe files exist.
+The slug may be the first argument (e.g. `/write-prd dark-mode-toggle`). Ask for it only if not provided. Confirm all three probe files exist.
 
 ### 2. Read all three probes
 
@@ -53,7 +53,9 @@ Write `docs/features/<slug>/prd.md`.
 
 ### 6. Report
 
-> "Wrote `docs/features/<slug>/prd.md`. Next: `write-design-brief` and `write-tech-spec`."
+> "Wrote `docs/features/<slug>/prd.md`.
+>
+> Next — run both: `/write-design-brief <slug>` and `/write-tech-spec <slug>`"
 
 ## Rules
 

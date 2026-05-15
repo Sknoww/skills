@@ -17,14 +17,18 @@ If missing, abort with a pointer to the upstream skill.
 
 ## Procedure
 
-### 1. Read inputs
+### 1. Resolve slug
+
+The slug may be the first argument (e.g. `/write-tech-spec dark-mode-toggle`). Ask for it only if not provided.
+
+### 2. Read inputs
 
 - `docs/features/<slug>/prd.md`
 - `docs/features/<slug>/probe-technical.md`
 
 Note the `Tech spec depth signal` from probe-technical: `full` or `module-map-only`.
 
-### 2. Always write Module map
+### 3. Always write Module map
 
 For each existing module touched + each new module, write:
 - **Module name**
@@ -35,7 +39,7 @@ For each existing module touched + each new module, write:
 
 Pull from probe-technical Modules touched + Modules new.
 
-### 3. Conditional sections (only if depth signal is `full`)
+### 4. Conditional sections (only if depth signal is `full`)
 
 - **Architecture deltas** — structural changes
 - **Data model deltas** — schemas, migrations
@@ -44,13 +48,15 @@ Pull from probe-technical Modules touched + Modules new.
 
 If depth signal is `module-map-only`, write each conditional section with a single line: `No <category> changes — additive within existing modules.`
 
-### 4. Write
+### 5. Write
 
 Write `docs/features/<slug>/tech-spec.md`.
 
-### 5. Report
+### 6. Report
 
-> "Wrote `docs/features/<slug>/tech-spec.md` (depth: <full | module-map-only>). Next: `slice-issues`."
+> "Wrote `docs/features/<slug>/tech-spec.md` (depth: <full | module-map-only>).
+>
+> Next — run: `/slice-issues <slug>`"
 
 ## Rules
 
