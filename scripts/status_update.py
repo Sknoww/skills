@@ -164,6 +164,81 @@ def cmd_mark_verified(args):
     return write_status(args, t)
 
 
+def sequence_order(issues_dir: Path, stems: list) -> list:
+    """Order stems by SEQUENCE.md if present, else numeric stem order."""
+    seq = issues_dir / "SEQUENCE.md"
+    if not seq.exists():
+        return sorted(stems)
+    by_num = {}
+    for stem in stems:
+        by_num.setdefault(stem.split("-", 1)[0], stem)
+    ordered, seen = [], set()
+    for line in seq.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"\s*-\s*(\d{3})\b", line)
+        if not m:
+            continue
+        stem = by_num.get(m.group(1))
+        if stem and stem not in seen:
+            ordered.append(stem)
+            seen.add(stem)
+    for stem in sorted(stems):  # any stems missing from SEQUENCE.md
+        if stem not in seen:
+            ordered.append(stem)
+    return ordered
+
+
+def cmd_next(args):
+    feature_dir = Path(args.feature_dir)
+    issues_dir, status_path, stems, rows = load_state(feature_dir)
+    if not stems:
+        print(f"No issue files in {issues_dir}", file=sys.stderr)
+        return 1
+    ordered = sequence_order(issues_dir, stems)
+    key = "executed" if args.stage == "execute" else "verified"
+    skill = "execute-issue" if args.stage == "execute" else "verify-issue"
+    for stem in ordered:
+        if rows[stem][key] == DASH:
+            print(f"/{skill} {args.slug}/{stem}")
+            return 0
+    if args.stage == "verify":
+        print(f"/publish-issues {args.slug}")
+    else:
+        print(f"/verify-issue {args.slug}/{ordered[-1]}")
+    return 0
+
+
+def _section(text: str, header: str) -> str:
+    idx = text.find(header)
+    if idx == -1:
+        return ""
+    rest = text[idx + len(header):]
+    nxt = rest.find("\n## ")
+    return rest if nxt == -1 else rest[:nxt]
+
+
+def cmd_regen(args):
+    def t(rows):
+        issues_dir = Path(args.feature_dir) / "issues"
+        for stem in rows:
+            text = (issues_dir / f"{stem}.md").read_text(encoding="utf-8")
+            exe = _section(text, "## Execution log (filled by execute-issue)")
+            ver = _section(text, "## Review verdict (filled by verify-issue)")
+            m = re.search(r"\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})", exe)
+            if m:
+                rows[stem]["executed"] = m.group(1)
+            vm = re.search(
+                r"^\s*-?\s*\*\*Code review:\*\*\s*"
+                r"(PASS|FAIL|NEEDS_USER)\b[^|\n]*$",
+                ver, re.MULTILINE,
+            )
+            vd = re.search(r"\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})", ver)
+            if vm and vm.group(1) in ("PASS", "FAIL", "NEEDS_USER"):
+                date = vd.group(1) if vd else ""
+                rows[stem]["verified"] = f"{date} {vm.group(1)}".strip()
+        return None
+    return write_status(args, t)
+
+
 def build_parser():
     p = argparse.ArgumentParser(description="STATUS.md helper")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -193,6 +268,18 @@ def build_parser():
     mv.add_argument("--verdict", required=True,
                     choices=["PASS", "FAIL", "NEEDS_USER"])
     mv.set_defaults(func=cmd_mark_verified)
+
+    nx = sub.add_parser("next", help="Print the next slash command")
+    nx.add_argument("--feature-dir", required=True)
+    nx.add_argument("--slug", required=True)
+    nx.add_argument("--stage", required=True, choices=["execute", "verify"])
+    nx.set_defaults(func=cmd_next)
+
+    rg = sub.add_parser("regen", help="Rebuild STATUS.md from issue logs")
+    rg.add_argument("--feature-dir", required=True)
+    rg.add_argument("--name", required=True)
+    rg.add_argument("--slug", required=True)
+    rg.set_defaults(func=cmd_regen)
 
     return p
 

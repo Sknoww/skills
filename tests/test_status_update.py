@@ -133,3 +133,83 @@ def test_mark_unknown_issue_errors(tmp_path):
     ])
     assert code != 0
     assert "099-nope" in err
+
+
+def test_next_execute_returns_first_unexecuted(tmp_path):
+    feature, issues = _seed(tmp_path)
+    run([
+        "mark-executed", "--feature-dir", str(feature), "--name", "Demo",
+        "--slug", "demo", "--issue", "001-alpha", "--date", "2026-05-15",
+    ])
+    out, err, code = run([
+        "next", "--feature-dir", str(feature), "--slug", "demo",
+        "--stage", "execute",
+    ])
+    assert code == 0, err
+    assert out.strip() == "/execute-issue demo/002-beta"
+
+
+def test_next_verify_returns_first_unverified(tmp_path):
+    feature, issues = _seed(tmp_path)
+    out, err, code = run([
+        "next", "--feature-dir", str(feature), "--slug", "demo",
+        "--stage", "verify",
+    ])
+    assert out.strip() == "/verify-issue demo/001-alpha"
+
+
+def test_next_all_done_signals_publish(tmp_path):
+    feature, issues = _seed(tmp_path)
+    for stem in ("001-alpha", "002-beta"):
+        run(["mark-executed", "--feature-dir", str(feature), "--name", "Demo",
+             "--slug", "demo", "--issue", stem, "--date", "2026-05-15"])
+        run(["mark-verified", "--feature-dir", str(feature), "--name", "Demo",
+             "--slug", "demo", "--issue", stem, "--date", "2026-05-15",
+             "--verdict", "PASS"])
+    out, err, code = run([
+        "next", "--feature-dir", str(feature), "--slug", "demo",
+        "--stage", "verify",
+    ])
+    assert out.strip() == "/publish-issues demo"
+
+
+def test_next_honors_sequence_order(tmp_path):
+    feature, issues = _seed(tmp_path)
+    (issues / "SEQUENCE.md").write_text(
+        "# Build Sequence\n\n### Layer 0\n- 002 — beta\n\n"
+        "### Layer 1\n- 001 — alpha\n",
+        encoding="utf-8",
+    )
+    out, err, code = run([
+        "next", "--feature-dir", str(feature), "--slug", "demo",
+        "--stage", "execute",
+    ])
+    assert out.strip() == "/execute-issue demo/002-beta"
+
+
+def test_regen_rebuilds_from_issue_logs(tmp_path):
+    feature = tmp_path / "docs" / "features" / "demo"
+    issues = feature / "issues"
+    issues.mkdir(parents=True)
+    (issues / "001-alpha.md").write_text(textwrap.dedent("""\
+        # Issue 001-alpha: demo
+
+        ## Slice type: vertical
+
+        ## Execution log (filled by execute-issue)
+        - **Token budget actual:** 1234
+        - **Date:** 2026-05-10
+
+        ## Review verdict (filled by verify-issue)
+        - **Code review:** PASS — looks good
+        - **Date:** 2026-05-11
+        """), encoding="utf-8")
+    make_issue(issues, "002-beta")  # untouched logs
+    out, err, code = run([
+        "regen", "--feature-dir", str(feature), "--name", "Demo",
+        "--slug", "demo",
+    ])
+    assert code == 0, err
+    status = (issues / "STATUS.md").read_text(encoding="utf-8")
+    assert "| 001-alpha | vertical | 2026-05-10 | 2026-05-11 PASS |" in status
+    assert "| 002-beta | vertical | — | — |" in status
