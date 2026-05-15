@@ -213,3 +213,33 @@ def test_regen_rebuilds_from_issue_logs(tmp_path):
     status = (issues / "STATUS.md").read_text(encoding="utf-8")
     assert "| 001-alpha | vertical | 2026-05-10 | 2026-05-11 PASS |" in status
     assert "| 002-beta | vertical | — | — |" in status
+
+
+def test_regen_is_authoritative_over_stale_status(tmp_path):
+    feature, issues = _seed(tmp_path)
+    # Stale: mark 001 executed in STATUS.md, but its issue log has NO date.
+    run(["mark-executed", "--feature-dir", str(feature), "--name", "Demo",
+         "--slug", "demo", "--issue", "001-alpha", "--date", "2099-01-01"])
+    out, err, code = run([
+        "regen", "--feature-dir", str(feature), "--name", "Demo",
+        "--slug", "demo",
+    ])
+    assert code == 0, err
+    status = (issues / "STATUS.md").read_text(encoding="utf-8")
+    # No log evidence -> regen resets the stale 2099 value back to dash.
+    assert "| 001-alpha | vertical | — | — |" in status
+
+
+def test_regen_ignores_unfilled_codereview_placeholder(tmp_path):
+    feature = tmp_path / "docs" / "features" / "demo"
+    issues = feature / "issues"
+    issues.mkdir(parents=True)
+    make_issue(issues, "001-alpha")  # writes the unfilled placeholder line
+    out, err, code = run([
+        "regen", "--feature-dir", str(feature), "--name", "Demo",
+        "--slug", "demo",
+    ])
+    assert code == 0, err
+    status = (issues / "STATUS.md").read_text(encoding="utf-8")
+    # Placeholder "**Code review:** PASS | FAIL | NEEDS_USER" must NOT count as verified.
+    assert "| 001-alpha | vertical | — | — |" in status

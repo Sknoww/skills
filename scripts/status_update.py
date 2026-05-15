@@ -16,6 +16,7 @@ from pathlib import Path
 DASH = "—"
 TABLE_HEADER = "| Issue | Slice | Executed | Verified |"
 TABLE_SEP = "|-------|-------|----------|----------|"
+DATE_RE = r"\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})"
 
 
 def issue_files(issues_dir: Path):
@@ -200,6 +201,7 @@ def cmd_next(args):
         if rows[stem][key] == DASH:
             print(f"/{skill} {args.slug}/{stem}")
             return 0
+    # all issues done in this stage; `ordered` is non-empty (stems checked above)
     if args.stage == "verify":
         print(f"/publish-issues {args.slug}")
     else:
@@ -220,10 +222,12 @@ def cmd_regen(args):
     def t(rows):
         issues_dir = Path(args.feature_dir) / "issues"
         for stem in rows:
+            rows[stem]["executed"] = DASH
+            rows[stem]["verified"] = DASH
             text = (issues_dir / f"{stem}.md").read_text(encoding="utf-8")
             exe = _section(text, "## Execution log (filled by execute-issue)")
             ver = _section(text, "## Review verdict (filled by verify-issue)")
-            m = re.search(r"\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})", exe)
+            m = re.search(DATE_RE, exe)
             if m:
                 rows[stem]["executed"] = m.group(1)
             vm = re.search(
@@ -231,7 +235,7 @@ def cmd_regen(args):
                 r"(PASS|FAIL|NEEDS_USER)\b[^|\n]*$",
                 ver, re.MULTILINE,
             )
-            vd = re.search(r"\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})", ver)
+            vd = re.search(DATE_RE, ver)
             if vm and vm.group(1) in ("PASS", "FAIL", "NEEDS_USER"):
                 date = vd.group(1) if vd else ""
                 rows[stem]["verified"] = f"{date} {vm.group(1)}".strip()
