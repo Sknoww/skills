@@ -135,6 +135,35 @@ def cmd_seed(args):
     return write_status(args)
 
 
+def _require_issue(rows, stem):
+    if stem not in rows:
+        return f"Issue '{stem}' not found among issue files."
+    return None
+
+
+def cmd_mark_executed(args):
+    def t(rows):
+        err = _require_issue(rows, args.issue)
+        if err:
+            return err
+        val = args.date
+        if args.status and args.status != "DONE":
+            val = f"{args.date} {args.status}"
+        rows[args.issue]["executed"] = val
+        return None
+    return write_status(args, t)
+
+
+def cmd_mark_verified(args):
+    def t(rows):
+        err = _require_issue(rows, args.issue)
+        if err:
+            return err
+        rows[args.issue]["verified"] = f"{args.date} {args.verdict}"
+        return None
+    return write_status(args, t)
+
+
 def build_parser():
     p = argparse.ArgumentParser(description="STATUS.md helper")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -144,6 +173,27 @@ def build_parser():
     sp.add_argument("--name", required=True)
     sp.add_argument("--slug", required=True)
     sp.set_defaults(func=cmd_seed)
+
+    me = sub.add_parser("mark-executed", help="Set the Executed cell")
+    me.add_argument("--feature-dir", required=True)
+    me.add_argument("--name", required=True)
+    me.add_argument("--slug", required=True)
+    me.add_argument("--issue", required=True, help="Issue stem, e.g. 001-alpha")
+    me.add_argument("--date", required=True)
+    me.add_argument("--status", choices=["DONE", "BLOCKED", "NEEDS_USER"],
+                    default="DONE")
+    me.set_defaults(func=cmd_mark_executed)
+
+    mv = sub.add_parser("mark-verified", help="Set the Verified cell")
+    mv.add_argument("--feature-dir", required=True)
+    mv.add_argument("--name", required=True)
+    mv.add_argument("--slug", required=True)
+    mv.add_argument("--issue", required=True, help="Issue stem, e.g. 001-alpha")
+    mv.add_argument("--date", required=True)
+    mv.add_argument("--verdict", required=True,
+                    choices=["PASS", "FAIL", "NEEDS_USER"])
+    mv.set_defaults(func=cmd_mark_verified)
+
     return p
 
 
