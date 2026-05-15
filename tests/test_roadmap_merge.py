@@ -179,7 +179,7 @@ def test_parse_item_without_id_comment_ignored(tmp_path):
 
 def _write(tmp_path, name, obj):
     p = tmp_path / name
-    p.write_text(json.dumps(obj))
+    p.write_text(json.dumps(obj), encoding="utf-8")
     return p
 
 
@@ -443,3 +443,57 @@ def test_render_section_empty_when_no_items(tmp_path):
         str(_write(tmp_path, "m.json", SAMPLE_METADATA))])
     # Section 2 heading still appears but has no items beneath it.
     assert "## 2. App Identity & Versioning" in out
+
+
+def test_merge_recheck_persists_when_finding_still_problematic(tmp_path):
+    """Once an item is marked recheck, it stays recheck until audit reports done."""
+    state = _empty_state()
+    state["items"].append({
+        "id": "shared.x", "section": 1, "title": "T", "platform_tag": "Both",
+        "status": "recheck", "evidence": "⚠️ regressed — flagged last run",
+        "next_action": None, "dev_notes": []})
+    findings = {"audit_date": "2026-06-01", "platforms_audited": ["apple"],
+                "framework_detected": "expo-managed",
+                "items": [_finding("shared.x", status="pending",
+                                   evidence="still not found")]}
+    out, _, _ = run_script([
+        "merge", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "f.json", findings))])
+    merged = json.loads(out)
+    by_id = {it["id"]: it for it in merged["items"]}
+    assert by_id["shared.x"]["status"] == "recheck"  # NOT pending
+    assert "still not found" in by_id["shared.x"]["evidence"]
+
+
+def test_merge_recheck_clears_when_finding_is_done(tmp_path):
+    """Recheck resolves when audit confirms done."""
+    state = _empty_state()
+    state["items"].append({
+        "id": "shared.x", "section": 1, "title": "T", "platform_tag": "Both",
+        "status": "recheck", "evidence": "was flagged",
+        "next_action": None, "dev_notes": []})
+    findings = {"audit_date": "2026-06-01", "platforms_audited": ["apple"],
+                "framework_detected": "expo-managed",
+                "items": [_finding("shared.x", status="done", evidence="now verified")]}
+    out, _, _ = run_script([
+        "merge", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "f.json", findings))])
+    merged = json.loads(out)
+    by_id = {it["id"]: it for it in merged["items"]}
+    assert by_id["shared.x"]["status"] == "done"
+    assert by_id["shared.x"]["evidence"] == "now verified"
+
+
+def test_merge_unknown_status_converts_to_blocked(tmp_path):
+    """Defensive: unknown findings (which renderer can't handle) become blocked."""
+    state = _empty_state()
+    findings = {"audit_date": "2026-06-01", "platforms_audited": ["apple"],
+                "framework_detected": "expo-managed",
+                "items": [_finding("apple.x", status="unknown",
+                                   evidence="audit couldn't tell")]}
+    out, _, code = run_script([
+        "merge", str(_write(tmp_path, "s.json", state)),
+        str(_write(tmp_path, "f.json", findings))])
+    assert code == 0
+    merged = json.loads(out)
+    assert merged["items"][0]["status"] == "blocked"

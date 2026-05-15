@@ -159,6 +159,11 @@ def merge_states(existing: dict, findings: dict) -> dict:
 
     # Apply findings to existing items + add new ones.
     for fid, finding in finding_by_id.items():
+        # Defensive: convert "unknown" → "blocked" (renderer doesn't know "unknown")
+        if finding.get("status") == "unknown":
+            finding = dict(finding)
+            finding["status"] = "blocked"
+
         if finding["status"] == "not-applicable":
             merged["history"].append({
                 "date": audit_date,
@@ -196,6 +201,15 @@ def merge_states(existing: dict, findings: dict) -> dict:
                 f"⚠️ regressed — previously: {old_ev}; now: {new_ev}"
                 if old_ev else f"⚠️ regressed — {new_ev}"
             )
+            merged_item["dev_notes"] = list(prior.get("dev_notes", []))
+        elif prior["status"] == "recheck" and finding["status"] != "done":
+            # Recheck persists until audit confirms resolution (status = done).
+            merged_item = dict(prior)
+            merged_item["status"] = "recheck"
+            merged_item["evidence"] = (
+                f"⚠️ still flagged — {finding.get('evidence', '')}"
+            )
+            merged_item["next_action"] = finding.get("next_action")
             merged_item["dev_notes"] = list(prior.get("dev_notes", []))
         else:
             merged_item = dict(prior)
