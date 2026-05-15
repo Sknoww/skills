@@ -20,7 +20,19 @@ The subagent used for this review MUST be different from the subagent_type recor
 
 ### 1. Resolve target issue
 
-Argument: a path or NNN. Resolve to `docs/features/<slug>/issues/NNN-<slug>.md`. Read the full issue.
+Resolve the argument in this order:
+
+1. **Contains `/` or is an existing path** → use it directly.
+2. **Bare `NNN` or `NNN-name`** → glob `docs/features/*/issues/NNN-*.md`:
+   - **0 matches** → abort: "No issue `NNN` found under `docs/features/`."
+   - **exactly 1 match** → use it.
+   - **>1 matches → HARD STOP.** List every candidate as a fully-qualified
+     command and require re-run disambiguated:
+     > "`NNN` is ambiguous across features. Re-run one of:
+     > - `/verify-issue <slugA>/<NNN-name>`
+     > - `/verify-issue <slugB>/<NNN-name>`"
+
+Derive `<slug>` from the resolved path and read the full issue.
 
 ### 2. Prompt for review subagent type
 
@@ -102,9 +114,35 @@ If `Slice type: skeleton`: skip the QA doc.
 - **Date:** <YYYY-MM-DD>
 ```
 
+Then update the progress tracker (skip silently if the helper is not found):
+
+```
+python ~/.claude/skills/slice-issues/status_update.py mark-verified \
+  --feature-dir docs/features/<slug> --name "<feature name>" --slug <slug> \
+  --issue <NNN-name> --date <YYYY-MM-DD> --verdict <PASS|FAIL|NEEDS_USER>
+```
+
+If STATUS.md does not exist, run the `regen` self-heal (see execute-issue
+§1.5) first, then `mark-verified`.
+
 ### 7. Report
 
-> "Issue <NNN> review: <verdict>. <QA doc path or 'no QA doc — skeleton issue'>. Next: <fix-and-re-verify | execute-issue NNN+1>."
+> "Issue <NNN> review: <verdict>. <QA doc path or 'no QA doc — skeleton issue'>.
+>
+> Next — run:"
+
+Then compute and print the literal next command from the tracker:
+
+```
+python ~/.claude/skills/slice-issues/status_update.py next \
+  --feature-dir docs/features/<slug> --slug <slug> --stage verify
+```
+
+- On **PASS**: print the helper's stdout (e.g.
+  `/execute-issue <slug>/<next-NNN-name>`, or `/publish-issues <slug>`
+  when every issue is verified PASS).
+- On **FAIL / NEEDS_USER**: print `fix the issue, then re-run
+  /verify-issue <slug>/<NNN-name>` instead of the helper output.
 
 ## Rules
 
