@@ -19,7 +19,7 @@ Inspired by Matt Pocock's probe → PRD → issues → implement flow. Three add
 ./install.sh
 ```
 
-The installer copies each leaf skill folder into `~/.claude/skills/`. Re-running is idempotent (it'll prompt before overwriting). On first run, it offers to archive existing prototype skills (`probe`, `scope`, `grill-me`) to `~/.claude/skills/.archive/`.
+The installer copies each leaf skill folder into `~/.claude/skills/`. Re-running is idempotent. On the first collision it asks once whether to overwrite-all / skip-all / archive-all / decide-each. Non-interactive equivalents: `--overwrite` (alias `--force`), `--skip`, `--archive` (PowerShell: `-Overwrite`/`-Skip`/`-Archive`); these are mutually exclusive and compose with `--dry-run`/`-DryRun`. On first run it also offers to archive existing prototype skills (`probe`, `scope`, `grill-me`) to `~/.claude/skills/.archive/`.
 
 ## Quick start
 
@@ -29,8 +29,8 @@ Happy path:
 > shape-feature           # optional — half-formed ideas only. Produces docs/concepts/<slug>.md
 > probe-feature           # interactive — produces docs/features/<slug>/ bundle (auto-promotes a ready-to-probe concept)
 > slice-issues            # produces issues/NNN-*.md and SEQUENCE.md
-> execute-issue 001-...   # loop per issue
-> verify-issue 001-...    # after each execute
+> execute-issue <slug>/001-...   # loop per issue (slug-qualified — avoids cross-feature NNN collisions)
+> verify-issue  <slug>/001-...   # after each execute
 > publish-issues          # optional — syncs to GitHub
 ```
 
@@ -55,7 +55,7 @@ Skip `shape-feature` if you already know what you're building.
 - `write-tech-spec` — always writes Module map; full sections only when warranted.
 
 ### Plan
-- `slice-issues` — the keystone. Vertical slices, 100k token cap, required Tests sections, Do-NOT-read lists.
+- `slice-issues` — the keystone. Vertical slices, 100k token cap, required Tests sections, Do-NOT-read lists. Also seeds `docs/features/<slug>/issues/STATUS.md`, a per-feature progress tracker that `execute-issue`/`verify-issue` tick off and that drives the literal "Next — run:" command at every handoff.
 - `sequence-issues` — topological order with parallelizable groups.
 
 ### Implement
