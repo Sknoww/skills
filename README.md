@@ -65,6 +65,9 @@ Skip `shape-feature` if you already know what you're building.
 ### Integrate
 - `publish-issues` — syncs local issues to GitHub via `gh`. Idempotent. Optional.
 
+### Release
+- `chart-publishing-path` — audits an Expo / React Native project and produces (or idempotently updates) `docs/publishing-roadmap.md`, a single checklist tracking everything between code and store-live status for the Apple App Store and Google Play. Re-run any time; developer notes are preserved across runs.
+
 ### Career
 - `build-background` — interview-driven capture of career history, projects, skills, story-bank, and goals into `<career-hub>/BACKGROUND.md`. First run picks the career-hub location.
 - `refine-template` — critiques resume format against modern best practices + ATS, iterates with the user, locks in a reusable template (markdown skeleton + CSS + reference.docx) in the career hub.
@@ -89,6 +92,10 @@ docs/features/<feature-slug>/
 │   └── SEQUENCE.md
 └── qa/
     └── NNN-qa-review.md
+```
+
+```
+docs/publishing-roadmap.md  # project-wide release/publishing checklist; produced by chart-publishing-path
 ```
 
 Slugs are unique across both `docs/concepts/` and `docs/features/`. `docs/design-system.md` lives at the project root (one per project, not per feature).
@@ -131,3 +138,5 @@ Per-job folder (in the directory `align-resume` is invoked from):
 
 - Design: `docs/superpowers/specs/2026-05-10-probe-feature-skill-library-design.md`
 - Plan: `docs/superpowers/plans/2026-05-10-probe-feature-skill-library.md`
+- Design: `docs/superpowers/specs/2026-05-14-chart-publishing-path-design.md`
+- Plan: `docs/superpowers/plans/2026-05-14-chart-publishing-path.md`
